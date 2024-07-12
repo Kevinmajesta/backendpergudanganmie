@@ -11,34 +11,40 @@ import (
 
 	"github.com/Kevinmajesta/backendpergudanganmi/pkg/response"
 	"github.com/Kevinmajesta/backendpergudanganmi/pkg/route"
+	"github.com/Kevinmajesta/backendpergudanganmi/pkg/token"
+	"github.com/golang-jwt/jwt/v5"
+	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type Server struct {
 	*echo.Echo
 }
 
-func NewServer(serverName string, publicRoutes, privateRoutes []*route.Route) *Server {
+func NewServer(serverName string, publicRoutes, privateRoutes []*route.Route, secretKey string) *Server {
 	e := echo.New()
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:3000"},
+		AllowMethods: []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+	}))
+	e.Use(middleware.CORS())
 
 	e.GET("/", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, response.SuccessResponse(http.StatusOK, "Hello, World!", nil))
 	})
 
-	v1 := e.Group(fmt.Sprintf("%s/api/v1", serverName))
+	v1 := e.Group(fmt.Sprintf("/%s/api/v1", serverName))
 
-	if len(publicRoutes) > 0 {
-		for _, v := range publicRoutes {
-			v1.Add(v.Method, v.Path, v.Handler)
-		}
+	for _, public := range publicRoutes {
+		v1.Add(public.Method, public.Path, public.Handler)
 	}
 
-	if len(privateRoutes) > 0 {
-		for _, v := range privateRoutes {
-			v1.Add(v.Method, v.Path, v.Handler)
-		}
+	for _, private := range privateRoutes {
+		// v1.Add(private.Method, private.Path, private.Handler, JWTProtected(cfg.JWT.SecretKey), SessionProtected())
+		v1.Add(private.Method, private.Path, private.Handler, JWTProtection(secretKey), JWTCheckRoles(private.Roles...))
 	}
-
 	return &Server{e}
 }
 
@@ -50,7 +56,9 @@ func (s *Server) Run() {
 func runServer(srv *Server) {
 	go func() {
 		err := srv.Start(":8080")
-		log.Fatal(err)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}()
 }
 
@@ -64,9 +72,45 @@ func gracefulShutdown(srv *Server) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	go func() {
-		if err := srv.Shutdown(ctx); err != nil {
-			srv.Logger.Fatal("Server Shutdown:", err)
+	if err := srv.Shutdown(ctx); err != nil {
+		srv.Logger.Fatal("Server Shutdown:", err)
+	}
+}
+
+func JWTProtection(secretKey string) echo.MiddlewareFunc {
+	return echojwt.WithConfig(echojwt.Config{
+		NewClaimsFunc: func(c echo.Context) jwt.Claims {
+			return new(token.JwtCustomClaims)
+		},
+		SigningKey: []byte(secretKey),
+	})
+}
+
+func JWTCheckRoles(roles ...string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			user, ok := c.Get("admin").(*jwt.Token)
+			if !ok {
+				return c.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusBadRequest, "you must login first"))
+			}
+
+			claims := user.Claims.(*token.JwtCustomClaims)
+
+			// Check if the user has the required role
+			if !contains(roles, claims.Role) {
+				return c.JSON(http.StatusForbidden, response.ErrorResponse(http.StatusBadRequest, "you don't have access"))
+			}
+
+			return next(c)
 		}
-	}()
+	}
+}
+
+func contains(slice []string, s string) bool {
+	for _, value := range slice {
+		if value == s {
+			return true
+		}
+	}
+	return false
 }
