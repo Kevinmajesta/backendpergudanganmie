@@ -8,6 +8,7 @@ import (
 
 	"github.com/Kevinmajesta/backendpergudanganmi/internal/entity"
 	"github.com/Kevinmajesta/backendpergudanganmi/internal/repository"
+	"github.com/Kevinmajesta/backendpergudanganmi/pkg/email"
 	"github.com/Kevinmajesta/backendpergudanganmi/pkg/encrypt"
 	"github.com/Kevinmajesta/backendpergudanganmi/pkg/token"
 	"github.com/golang-jwt/jwt/v5"
@@ -32,16 +33,18 @@ type userService struct {
 	userRepository repository.UserRepository
 	tokenUseCase   token.TokenUseCase
 	encryptTool    encrypt.EncryptTool
+	emailSender    *email.EmailSender
 }
 
 var InternalError = "internal server error"
 
 func NewUserService(userRepository repository.UserRepository, tokenUseCase token.TokenUseCase,
-	encryptTool encrypt.EncryptTool) *userService {
+	encryptTool encrypt.EncryptTool, emailSender *email.EmailSender) *userService {
 	return &userService{
 		userRepository: userRepository,
 		tokenUseCase:   tokenUseCase,
 		encryptTool:    encryptTool,
+		emailSender:    emailSender,
 	}
 }
 
@@ -111,12 +114,12 @@ func (s *userService) CreateUser(user *entity.User) (*entity.User, error) {
 		return nil, err
 	}
 
-	// emailAddr := newUser.Email
-	// err = s.emailSender.SendWelcomeEmail(emailAddr, newUser.Fullname, "")
+	emailAddr := newUser.Email
+	err = s.emailSender.SendWelcomeEmail(emailAddr, newUser.Fullname, "")
 
-	// if err != nil {
-	// 	return nil, err
-	// }
+	if err != nil {
+		return nil, err
+	}
 
 	// resetCode := generateResetCode()
 	// err = s.emailSender.SendVerificationEmail(newUser.Email, newUser.Fullname, resetCode)

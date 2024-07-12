@@ -18,9 +18,9 @@ type Config struct {
 }
 
 type SMTPConfig struct {
-	Host     string `env:"HOST" envDefault:""`
+	Host     string `env:"HOST" envDefault:"smtp.gmail.com"`
 	Port     string `env:"PORT" envDefault:"587"`
-	Password string `env:"PASSWORD" envDefault:""`
+	Password string `env:"PASSWORD" envDefault:"lzpjumcpkekkcqbn"`
 }
 
 type PostgresConfig struct {

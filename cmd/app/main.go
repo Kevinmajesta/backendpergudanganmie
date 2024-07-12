@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/Kevinmajesta/backendpergudanganmi/configs"
 	"github.com/Kevinmajesta/backendpergudanganmi/internal/builder"
+	"github.com/Kevinmajesta/backendpergudanganmi/internal/entity"
 	"github.com/Kevinmajesta/backendpergudanganmi/pkg/cache"
 	"github.com/Kevinmajesta/backendpergudanganmi/pkg/encrypt"
 	"github.com/Kevinmajesta/backendpergudanganmi/pkg/postgres"
@@ -29,10 +30,10 @@ func main() {
 	tokenUseCase := token.NewTokenUseCase(cfg.JWT.SecretKey)
 
 	// Convert configs.Config to *entity.Config
-	// entityCfg := convertToEntityConfig(cfg)
+	entityCfg := convertToEntityConfig(cfg)
 
 	// Build public and private routes
-	publicRoutes := builder.BuildPublicRoutes(db, redisDB, tokenUseCase, encryptTool)
+	publicRoutes := builder.BuildPublicRoutes(db, redisDB, entityCfg, tokenUseCase, encryptTool)
 	privateRoutes := builder.BuildPrivateRoutes(db, redisDB, encryptTool, tokenUseCase)
 
 	// Initialize and run the server
@@ -47,13 +48,13 @@ func checkError(err error) {
 }
 
 // Example function to convert configs.Config to *entity.Config
-// func convertToEntityConfig(cfg *configs.Config) *entity.Config {
-// 	return &entity.Config{
-// 		SMTP: entity.SMTPConfig{
-// 			Host:     cfg.SMTP.Host,
-// 			Port:     cfg.SMTP.Port,
-// 			Password: cfg.SMTP.Password,
-// 		},
-// 		// Add other fields as needed
-// 	}
-// }
+func convertToEntityConfig(cfg *configs.Config) *entity.Config {
+	return &entity.Config{
+		SMTP: entity.SMTPConfig{
+			Host:     cfg.SMTP.Host,
+			Port:     cfg.SMTP.Port,
+			Password: cfg.SMTP.Password,
+		},
+		// Add other fields as needed
+	}
+}
