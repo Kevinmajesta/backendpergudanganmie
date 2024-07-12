@@ -33,5 +33,9 @@ func BuildPrivateRoutes(db *gorm.DB, redisDB *redis.Client, encryptTool encrypt.
 	userService := service.NewUserService(userRepository, nil, encryptTool, nil)
 	userHandler := handler.NewUserHandler(userService)
 
-	return router.PrivateRoutes(userHandler)
+	produkRepository := repository.NewProdukRepository(db, cacheable)
+	produkService := service.NewProdukService(produkRepository, nil, encryptTool)
+	produkHandler := handler.NewProdukHandler(produkService)
+
+	return router.PrivateRoutes(userHandler, produkHandler)
 }

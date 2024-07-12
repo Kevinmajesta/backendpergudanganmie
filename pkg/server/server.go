@@ -89,7 +89,7 @@ func JWTProtection(secretKey string) echo.MiddlewareFunc {
 func JWTCheckRoles(roles ...string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			user, ok := c.Get("admin").(*jwt.Token)
+			user, ok := c.Get("user").(*jwt.Token)
 			if !ok {
 				return c.JSON(http.StatusUnauthorized, response.ErrorResponse(http.StatusBadRequest, "you must login first"))
 			}

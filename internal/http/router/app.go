@@ -33,13 +33,31 @@ func PublicRoutes(userHandler handler.UserHandler) []*route.Route {
 	}
 }
 
-func PrivateRoutes(userHandler handler.UserHandler) []*route.Route {
+func PrivateRoutes(userHandler handler.UserHandler, produkHandler handler.ProdukHandler) []*route.Route {
 	return []*route.Route{
-		//user
+		//produk
+		{
+			Method:  http.MethodPost,
+			Path:    "/produk/add",
+			Handler: produkHandler.CreateProduk,
+			Roles:   onlyAdmin,
+		},
 		{
 			Method:  http.MethodPut,
-			Path:    "/users/:id_user",
-			Handler: userHandler.UpdateUser,
+			Path:    "/produk/edit/:id_produk",
+			Handler: produkHandler.UpdateProduk,
+			Roles:   onlyAdmin,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/produk/all",
+			Handler: produkHandler.FindAllProduct,
+			Roles:   onlyAdmin,
+		},
+		{
+			Method:  http.MethodDelete,
+			Path:    "/produk/delete",
+			Handler: produkHandler.DeleteProduct,
 			Roles:   onlyAdmin,
 		},
 	}
